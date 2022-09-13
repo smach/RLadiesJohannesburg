@@ -1,0 +1,609 @@
+---
+title: "Send email with emayili"
+format: 
+  revealjs:
+    theme: [rladies.scss, my.css]
+    self-contained: true
+title-slide-attributes: 
+  data-background-image: "images/do_more_with_r.webp"
+  data-background-opacity: "0.2"    
+editor: source
+---
+
+<br /><br />
+
+<center>
+
+### [Send email with emayili]{.purple}
+
+### [(or the gmailr R package)]{.purple}
+
+<br /><br />
+
+#### Sharon Machlis at RLadies Johannesburg September 2022 {.purple}
+
+</center>
+
+## Lesser known but great choice for email with R: [emayili](https://datawookie.github.io/emayili/)
+
+::: incremental
+-   Should work for almost any email account where you have SMTP access
+-   Create email from an Rmd file including results of R code!
+-   Name comes from the Zulu word for email, *imeyili*
+:::
+
+## 4 easy steps
+
+::: incremental
+-   Create message object with `envelope()`
+-   Add to, from, subject, body to the message
+-   Create server connection object with `server()`
+-   Send message using your server connection
+:::
+
+## Message syntax 1
+
+Text
+
+```{r}
+#| eval: false
+#| echo: true
+
+my_text_message <- envelope() |>
+  from("me@gmail.com") |>
+  to("you@email.com") |>
+  subject("My Subject") |>
+  text("Hello, world!")
+```
+
+HTML
+
+```{r}
+#| eval: false
+#| echo: true
+
+my_html_message <- envelope() |>
+  from("me@gmail.com") |>
+  to("you@email.com") |>
+  subject("My Subject") |>
+  html("<p>Hello, world!</p>")
+```
+
+## Message syntax 2
+
+Text
+
+```{r}
+#| eval: false
+#| echo: true
+
+my_message <- envelope(
+  from = "me@gmail.com",
+  to = "you@email.com",
+  subject = "My Subject",
+  text = "Hello, world!"
+)
+
+```
+
+HTML
+
+```{r}
+#| eval: false
+#| echo: true
+
+my_message <- envelope(
+  from = "me@gmail.com",
+  to = "you@email.com",
+  subject = "My Subject",
+  html = "<p>Hello, world!</p>"
+)
+
+```
+
+## Use `render()` for an .Rmd file with R code results
+
+```{r}
+#| eval: false
+#| echo: true
+#| code-line-numbers: "5"
+my_rmd_message <- envelope() |>
+  from("me@gmail.com") |>
+  to("you@email.com") |>
+  subject("Email from an R Markdown file") |>
+  render("my_email_rmd_file.Rmd")
+```
+
+## Optional add attachment
+
+```{r}
+#| eval: false
+#| echo: true
+my_rmd_message |>
+  attachment("myfilename")
+```
+
+## Make an RStudio code snippet!
+
+`usethis::edit_rstudio_snippets()`
+
+    snippet my_email
+      # library(emayili)
+        my_rmd_message <- envelope() |>
+          from("me@gmail.com") |>
+          to("${1:to_address}") |>
+          subject("${2:Subject}") |>
+          render("${3:my_email_rmd_file}.Rmd") |>
+          attachment("${4:myfilename}")
+
+## Connection setup syntax for most accounts
+
+```{r}
+#| eval: false
+#| echo: true
+my_server_connection <- server(
+  host = "smtp.thedomain.com",
+  port = 465,
+  username = "me@thedomain.com",
+  password = "mypassword"
+)
+```
+
+## Connection setup syntax for most accounts
+
+```{r}
+#| eval: false
+#| echo: true
+my_server_connection <- server(
+  host = "smtp.thedomain.com",
+  port = 465,
+  username = "me@thedomain.com",
+  password = "mypassword"
+)
+```
+
+![](images/NO.svg.png){fig-align="center", fig-alt="red circle with line through it"}
+
+## Connection setup: Better
+
+```{r}
+#| eval: false
+#| echo: true
+my_server_connection <- gmail(
+  host = "smtp.thedomain.com",
+  port = 465,
+  username = "me@thedomain.com",
+  password = Sys.getenv("MY_EMAIL_PASSWORD")
+)
+
+```
+
+Edit your .Renviron file by adding `MY_EMAIL_PASSWORD = "thePassWd"` with `usethis::edit_r_environ()`
+
+## Best: Safeguard a password if script not scheduled/running unattended
+
+```{r}
+#| eval: false
+#| echo: true
+library(keyring)
+keyring_create("MySecurePasswords") # optional
+
+key_set("MY_EMAIL_APP_PASSWORD", keyring = "MySecurePasswords") #specify keyring if not default
+
+key_get("MY_EMAIL_APP_PASSWORD", keyring = "MySecurePasswords") # specify keyring if not default
+
+keyring_lock("MySecurePasswords")
+```
+
+![](images/password.png) {fig.alt = "password prompt"}
+
+## Connection setup: Best
+
+```{r}
+#| eval: false
+#| echo: true
+# key_set("MY_EMAIL_PASSWORD", keyring = "MySecurePasswords")
+my_server_connection <- server(
+  host = "smtp.thedomain.com",
+  port = 465,
+  username = "me@thedomain.com",
+  password = key_get("MY_EMAIL_PASSWORD", keyring = "MySecurePasswords")
+)
+```
+
+## For Gmail only:
+
+Set up 2-factor authentication and an app password
+
+<https://myaccount.google.com/security>
+
+![](images/app_password.png){fig-alt="2-step verification on and option for App passwords"}
+
+## Select app (Mail) and device (probably Mac or Windows Computer)
+
+![](images/create_app_password.png){fig-alt="Choices to select app and select device"}
+
+## Connection to send from Gmail
+
+```{r}
+#| eval: false
+#| echo: true
+my_gmail_server_connection <- gmail(
+  username = "myusername",
+  password = key_get("MY_GMAIL_APP_PASSWORD", keyring = "MySecurePasswords")
+)
+```
+
+## Create R Markdown doc for email with your R code results
+
+![](images/email_rmd.png)
+
+## Create email from that .Rmd file
+
+```{r}
+#| echo: true
+library(emayili)
+my_rmd_message <- envelope() |>
+  from("me@machlis.com") |>
+  to("someone@gmail.com") |>
+  subject("Email from an R Markdown file") |>
+  render("my_email_file.Rmd")
+```
+
+## See metadata to be sent to server
+
+```{r}
+#| echo: true
+print(my_rmd_message)
+# print(my_rmd_message, details = TRUE) to see everything sent, including css and encoding
+```
+
+## Send!
+
+```{r}
+#| eval: false
+#| echo: true
+my_server_connection(my_rmd_message)
+# my_server_connection(my_rmd_message, verbose = TRUE) to see what's happening
+```
+
+## Result in my Gmail
+
+![](images/emayili_results.png)
+
+## Gmail only: gmailr
+
+Alternative specifically for Gmail
+
+## gmailr advantages
+
+::: incremental
+-   Create drafts before sending to view in Gmail
+-   Read as well as send from Gmail
+:::
+
+## gmailr disadvantages
+
+::: incremental
+-   Gmail only
+-   New authorization is complex
+:::
+
+## [gmailr one-time setup]{.purple}
+
+::: incremental
+-   Set up your gmail account for API access
+-   Download json authorization file
+-   Install the gmailr package
+:::
+
+## Steps to send an email {.purple}
+
+::: incremental
+-   Load gmailr
+-   Load your authorization json file if it's not in .Renviron\
+-   Create message text\
+-   Create message object including that text
+-   Send message object\
+:::
+
+## gmailr setup advice from package website
+
+![](images/setup_advice.png){fig-alt="The easiest way to do this is via the Python Quickstart"}
+
+## Instructions for initial gmailr setup
+
+<https://developers.google.com/gmail/api/quickstart/python>
+
+![](images/python_quickstart.png){fig-alt="Part of instructions with 'Create a project and enable the API' and 'Create credentials' links highlighted"}
+
+## Set up your gmail account for API access
+
+Create a new project if you don't already have one at
+
+<https://console.developer.google.com>
+
+![](images/new_project.png){fig-alt="Select New Project at upper right" fig-align="center"}
+
+## Create your project
+
+Choose a name for your project
+
+![](images/new_project_02.png){fig-alt="Choose a name for your project screen " fig-align="center"}
+
+## Set up your gmail account for API access
+
+Click the ENABLE APIS AND SERVICES option
+
+![](images/enable_apis.png){fig-alt="API & Services screen with Enable APIs option highlighted" fig-align="center"}
+
+## Enable the Gmail API
+
+Search for and select the Gmail API
+
+![](images/gmail_api.png){fig-alt="Select Gmail API from the list after searching" fig-align="center"}
+
+## Click Enable
+
+![](images/enable_gmail.png){fig-alt="Click the ENABLE button" fig-align="center"}
+
+## Set up your gmail account for API access
+
+<https://developers.google.com/workspace/guides/create-credentials#desktop-app>
+
+![](images/create_credentials.png){fig-alt="Create credentials instructions" fig-align="center"}
+
+## Create an OAuth client ID
+
+![](images/credential_type.png){fig-alt="Screen with OAuth client ID highlighted"}
+
+## Select Desktop app
+
+![](images/desktop_app.png){fig-align="center", fig-alt="Screen with options for application type: Web app, Android, Chrome app, iOS, TVs, Desktop app, and UWP with Desktop app highlighted"}
+
+## Name OAuth client and download JSON file
+
+![](images/download_json.png){fig-alt="Screen showing OAuth client created and option to download JSON"}
+
+## 'Publish' your app
+
+![](images/publish.png){fig-alt="Image asking if app should be pushed to production"}
+
+## Store location of the JSON in your .Renvironment
+
+```{r}
+#| eval: false
+#| echo: true
+
+usethis::edit_r_environ()
+
+# In .Renvironment
+GMAILR_APP = "path/to/google_oath_file.json"
+
+```
+
+------------------------------------------------------------------------
+
+<center>
+
+<h1>Ready to email at last!</h1>
+
+![](images/finally_giphy.gif)
+
+</center>
+
+<em><small class="text-muted">via giphy.com</small></em>
+
+## Get text from my weather station for my email
+
+```{r}
+#| echo: true
+#| eval: true
+library(rvest)
+the_html <- read_html("https://apis.machlis.com/sharonwx")
+the_text <- html_text2(the_html)
+the_text <- gsub('"', '', the_text, fixed = TRUE)
+cat(the_text)
+```
+
+## Syntax for plain email
+
+```{r}
+#| echo: true
+#| eval: false 
+my_email_message <- gm_mime() |>
+  gm_to("some_email_address@somedomain.com") |>
+  gm_from("myemail@gmail.com") |>
+  gm_subject("My Subject") |>
+  gm_text_body("My text")`
+
+```
+
+## Syntax for *HTML* email
+
+```{r}
+#| echo: true
+#| eval: false
+#| code-line-numbers: "5"
+my_email_message <- gm_mime() |>
+  gm_to("some_email_address@somedomain.com") |>
+  gm_from("myemail@gmail.com") |>
+  gm_subject("My Subject") |>
+  gm_html_body("<p>My HTML text</p>")
+```
+
+## My weather email
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: true
+#| eval: true
+library(gmailr)
+my_email_message <- gm_mime() |>
+  gm_to("testing@machlis.com") |>
+  gm_from("framinghamevents@gmail.com") |>
+  gm_subject("Current Weather") |>
+  gm_html_body(paste0("<p>", the_text, "</p>"))
+```
+
+## Configure session to use stored json credentials
+
+```{r}
+#| eval: false
+#| echo: true
+gm_auth_configure()
+```
+
+```{r}
+#| eval: false
+gm_auth_configure()
+
+
+```
+
+## Test my email message
+
+```{r}
+#| eval: false
+#| echo: true
+gm_create_draft(my_email_message)
+```
+
+![](images/unverified_small.png){fig-alt="image showing screen warning that google hasn't verified this app"}
+
+## Check drafts
+
+![](images/drafts.png){fig-alt="Gmail showing a draft email with Current Weather"}
+
+## Send mail
+
+```{r}
+#| eval: false
+#| echo: true
+
+gm_send_message(my_email_message)
+```
+
+## Add attachment while creating message
+
+```{r}
+#| eval: false
+#| echo: true
+#| code-line-numbers: "6"
+
+my_email_message <- gm_mime() |>
+  gm_to("testing@machlis.com") |>
+  gm_from("framinghamevents@gmail.com") |>
+  gm_subject("Current Weather") |>
+  gm_html_body(paste0("<p>", the_text, "</p>")) |>
+  gm_attach_file("asos_temps.csv")
+```
+
+## Add attachment to existing message
+
+```{r}
+#| eval: false
+#| echo: true
+#| code-line-numbers: "6"
+
+my_email_message <- my_email_message |>
+  gm_attach_file("asos_temps.csv")
+```
+
+## Get monthly high temperatures for plot to add to email
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: true
+library(vroom)
+library(dplyr)
+library(lubridate)
+high_temps <- vroom("asos_temps.csv", show_col_types = FALSE) |>
+  mutate(MonthStarting = floor_date(as.Date(valid), unit = "month")) |>
+  group_by(MonthStarting) |>
+  filter(tmpc == max(tmpc)) |>
+  slice(1) |>
+  ungroup() |>
+  rename(HighTemp = tmpc)
+
+glimpse(high_temps)
+
+```
+
+## Create bar graph of monthly temperatures
+
+```{r}
+#| echo: true
+library(ggplot2)
+ggplot(high_temps, aes(x=MonthStarting, y=HighTemp)) + 
+  geom_bar(stat="identity", color = "black", fill="#0072B2") +
+  theme_classic() +
+  xlab("Month") + ylab("") + ggtitle("Johannesburg Monthly High Temperatures", subtitle = "Data from https://mesonet.agron.iastate.edu/request/download.phtml?network=ZA__ASOS") +
+    theme(plot.title = element_text(size = 24))
+ggsave("images/monthly_high_temps.png", width = 6, height = 3, units = "in")
+
+```
+
+## Syntax to add saved graph image to email body (in theory)
+
+```{r}
+#| echo: true
+#| eval: false
+#| code-line-numbers: "6,8"
+my_email_message <- gm_mime() |>
+  gm_to("some_email_address@somedomain.com") |>
+  gm_from("myemail@gmail.com") |>
+  gm_subject("My Subject") |>
+  gm_html_body('<p>My HTML text<br />
+                <img src="cid:the_id_i_gave_my_image">   
+               </p>') |>
+  gm_attach_file("my_image_file.png", id = "the_id_i_gave_my_image")
+
+
+```
+
+## Adding the plot and CSV to my email
+
+```{r}
+#| echo: true
+#| eval: false
+my_email_message_w_image <- gm_mime() |>
+  gm_to("testing@machlis.com") |>
+  gm_from("framinghamevents@gmail.com") |>
+  gm_subject("Temperatures in Johannesburg") |>
+  gm_html_body(paste0('<p>Attached is a CSV with hourly temperature readings in Johannesburg. Below is a graph of monthly highs.</p><br /><img src="hightemps"><p>Data from https://mesonet.agron.iastate.edu/request/download.phtml?network=ZA__ASOS</p>')) |>
+  gm_attach_file("asos_temps.csv") |>
+  gm_attach_file("images/monthly_high_temps.png", id = "hightemps")
+
+gm_send_message(my_email_message_w_image)
+```
+
+## What I saw in my desktop email client
+
+![](images/email_with_image2.png){fig-alt="email with blue bar graph showing monthly high temperatures"}
+
+## What I saw in my Web mail
+
+![](images/email_with_image.png){fig-alt="email with small image of graph surrounded by a lot of blue text"}
+
+## More email R package options
+
+::: incremental
+-   blastula <https://pkgs.rstudio.com/blastula/>
+
+-   Outlook-specific with Microsoft365R: [Send Outlook email and Teams messages with R](https://www.infoworld.com/article/3641408/send-outlook-email-and-teams-messages-with-r.html)
+:::
+
+## More Resources
+
+This GitHub repo: <https://www.github.com/smach/RLadiesJohannesburg>
+
+[Keep your passwords and tokens secure with the keyring package](https://www.infoworld.com/article/3320999/r-tip-keep-your-passwords-and-tokens-secure-with-the-keyring-package.html)
+
+[My InfoWorld article on gmailr](https://www.infoworld.com/article/3398701/how-to-send-email-from-r-and-gmail.html)
+
+Do More With R: <https://bit.ly/domorewithR>
+
+Find me on Twitter: [\@sharon000](https://twitter.com/sharon000)

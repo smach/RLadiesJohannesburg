@@ -1,0 +1,18 @@
+h1.title {
+  color: purple;
+}
+
+.purple {
+  color: purple;
+}
+
+h2{
+  color: purple;
+}
+
+.helpme {
+  color: red !important;
+  font-family: bold;
+}
+
+/*-- scss:defaults --*/

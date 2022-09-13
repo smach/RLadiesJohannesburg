@@ -1,0 +1,48 @@
+---
+title: "Johannesburg Monthly High Temperatures"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+include_css = c("rmd", "highlight")
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+Current weather at my house: 
+
+```{r}
+#| message: false
+#| warning: false
+library(rvest)
+the_html <- read_html("https://apis.machlis.com/sharonwx")
+the_text <- html_text2(the_html)
+the_text <- gsub('"', '', the_text, fixed = TRUE)
+cat(the_text)
+```
+
+Below is my graph of Johannesburg weather data from [https://mesonet.agron.iastate.edu/request/download.phtml?network=ZA__ASOS](https://mesonet.agron.iastate.edu/request/download.phtml?network=ZA__ASOS)
+
+```{r}
+#| message: false
+#| warning: false
+pacman::p_load(vroom, dplyr, lubridate, ggplot2)
+high_temps <- vroom("asos_temps.csv", show_col_types = FALSE) |>
+  mutate(MonthStarting = floor_date(as.Date(valid), unit = "month")) |>
+  group_by(MonthStarting) |>
+  filter(tmpc == max(tmpc)) |>
+  slice(1) |>
+  ungroup() |>
+  rename(HighTemp = tmpc)
+
+ggplot(high_temps, aes(x=MonthStarting, y=HighTemp)) + 
+  geom_bar(stat="identity", color = "black", fill="#0072B2") +
+  theme_classic() +
+  xlab("Month") + ylab("")  +
+    theme(plot.title = element_text(size = 24))
+
+```
+
+Have a great evening!
+
+-- Sharon
+
